@@ -1,4 +1,9 @@
 use std::collections::{HashMap, HashSet};
+use std::fs::File;
+use std::io::{self, Read};
+use std::rc::Rc;
+use std::thread;
+use std::time::Duration;
 
 // 基本的なデータ型の例示
 fn show_basic_types() {
@@ -53,10 +58,97 @@ trait Describable {
 // トレイトの実装
 impl Describable for Person {
     fn describe(&self) -> String {
-        // 不正な文字を修正
         format!("{}さん（{}歳）", self.name, self.age)
     }
 }
+
+//---------------- 追加要素ここから -----------------
+
+// ライフタイムと参照の例
+// 2つの文字列スライスを受け取り、長い方の参照を返す関数
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() { x } else { y }
+}
+
+// ジェネリック関数とトレイト境界
+// Debugトレイトを実装している任意の型に対して要素を表示する
+fn print_elements<T: std::fmt::Debug>(slice: &[T]) {
+    for item in slice {
+        println!("{:?}", item);
+    }
+}
+
+// Option型とResult型におけるさらに詳細なパターンマッチング例
+fn option_and_result_patterns() {
+    let maybe_num: Option<i32> = Some(100);
+    match maybe_num {
+        Some(n) if n > 50 => println!("50より大きい値: {}", n),
+        Some(n) => println!("50以下の値: {}", n),
+        None => println!("値はありません"),
+    }
+
+    let parse_result: Result<i32, _> = "not_number".parse();
+    match parse_result {
+        Ok(n) => println!("パース成功: {}", n),
+        Err(e) => println!("パース失敗: {}", e),
+    }
+}
+
+// `?`演算子によるエラーハンドリング
+// ファイルを読み込んでその内容を文字列で返す関数
+fn read_file_content(path: &str) -> io::Result<String> {
+    let mut file = File::open(path)?; // ここで?を使ってエラーを即Return
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    Ok(contents)
+}
+
+// スマートポインタ(Box)の例
+fn box_example() {
+    let x = Box::new(10);
+    println!("Boxに格納された値: {}", x);
+}
+
+// Rc(参照カウント型スマートポインタ)の例
+fn rc_example() {
+    let rc_value = Rc::new(String::from("共有文字列"));
+    let rc_clone1 = Rc::clone(&rc_value);
+    let rc_clone2 = Rc::clone(&rc_value);
+    println!("Rcの参照カウント: {}", Rc::strong_count(&rc_value));
+    println!("オリジナル: {}, クローン1: {}, クローン2: {}",
+        rc_value, rc_clone1, rc_clone2);
+}
+
+// impl Traitを利用した返り値
+// イテレータを返す関数の例
+fn create_range_iter() -> impl Iterator<Item = i32> {
+    0..5 // 0から4までのイテレータ
+}
+
+// 並行処理の例（スレッド生成）
+fn thread_example() {
+    let handle = thread::spawn(|| {
+        for i in 1..=5 {
+            println!("別スレッド: {}", i);
+            thread::sleep(Duration::from_millis(50));
+        }
+    });
+
+    for i in 1..=5 {
+        println!("メインスレッド: {}", i);
+        thread::sleep(Duration::from_millis(100));
+    }
+
+    // スレッド終了待ち
+    handle.join().unwrap();
+}
+
+// スライスを使った関数
+fn sum_slice(slice: &[i32]) -> i32 {
+    slice.iter().sum()
+}
+
+//---------------- 追加要素ここまで -----------------
 
 fn main() {
     // 1. 変数と可変性
@@ -162,4 +254,46 @@ fn main() {
 
     // トレイトの使用
     println!("人物の説明: {}", person.describe());
+
+    // ---------------- ここから追加要素呼び出し -----------------
+
+    // ライフタイムの例
+    let str1 = "Hello";
+    let str2 = "こんにちは";
+    let longer = longest(str1, str2);
+    println!("より長い文字列: {}", longer);
+
+    // スライスの例
+    let slice_result = sum_slice(&numbers);
+    println!("スライスの合計: {}", slice_result);
+
+    // ジェネリック関数とトレイト境界
+    print_elements(&numbers);
+
+    // OptionとResultの追加パターンマッチ例
+    option_and_result_patterns();
+
+    // ?演算子によるファイル読み込み
+    // ここでは存在しないファイル名を渡してエラー例示
+    match read_file_content("not_exist.txt") {
+        Ok(content) => println!("ファイル内容: {}", content),
+        Err(e) => println!("ファイル読み込みエラー: {}", e),
+    }
+
+    // Boxの例
+    box_example();
+
+    // Rcの例
+    rc_example();
+
+    // impl Traitを使ったイテレータ返却例
+    let range_iter = create_range_iter();
+    for val in range_iter {
+        println!("range_iterの値: {}", val);
+    }
+
+    // 並行処理の例
+    thread_example();
+
+    println!("メイン関数終了");
 }
